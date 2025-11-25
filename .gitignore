@@ -1,0 +1,15 @@
+OFDM-2.m
+
+# Ignore PDF files
+*.pdf
+
+# Ignore MATLAB autosave files
+*.asv
+
+# Ignore entire folder
+final/
+
+# ignore file in folder
+jupyter_notebook/ML_RET_training.ipynb
+jupyter_notebook/ML_RET_load.ipynb
+
