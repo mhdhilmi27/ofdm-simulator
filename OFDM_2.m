@@ -1,5 +1,3 @@
-% Muhammad Hilmi
-
 %% System parameters
 K = 64; % number of subcarriers
 N = 64; % number of samples equal to K.
@@ -79,6 +77,10 @@ for k = 1:K
 end
 
 
+
+
+
+
 %% We start the main loop
 
 % number of loops (messages to be sent for each carrier)
@@ -99,7 +101,6 @@ for iterations = 1:Nmes
     
     % create the random symbol to be sent for each carrier and put it in 
     % the vector a
-    %for k = 1:K
     for k = 1:K
         % Draw a message from the prior
         M = subcarrier{k,1}.M;
@@ -112,115 +113,44 @@ for iterations = 1:Nmes
     % the a-vector contains the symbols to be sent. 
     
 
-    % b) Create the vector g of length K, where the k'th element is gk from the OFDM compendium.
-    % ...
-    if mod(K,2) == 1        %odd
-        krc = (K-1)/2;
-    elseif mod(K,2) == 0    %even
-        krc = (K-2)/2; 
-    end
-
-    k = 0:K-1;
-    g = k - krc;
-
     % a) Construct the matrix Qt and the matrix Qt'; Pages 20-21 OFDM
     % lecture notes.
     % Represent both of these as sparse matrices to save memory. 
     % ...
-    % g_bin is length-K, values in 0..N-1
-
-    g_bin = mod(g, N);
-
-    g0   = g(1);      
-    gK_1 = g(end);
-
-    % range for every Xm
-    start_m_1 = 0;
-    stop_m_1 = gK_1;
-    start_m_2 = gK_1 + 1; 
-    stop_m_2 = g0 + N - 1;
-    start_m_3 = g0 + N;
-    stop_m_3 = N - 1;   
-
-    m_first_range = start_m_1:stop_m_1;
-    a_first_range = m_first_range-g0;
-
-    m_third_range = start_m_3:stop_m_3;
-    a_third_range = m_third_range-(g0+N);
     
-    if start_m_2 <= stop_m_2
-        len2 = stop_m_2 - start_m_2 + 1;
-        a_second_range = -1 * ones(1, len2); 
-        a_idx = [a_first_range, a_second_range, a_third_range];
-        
-    elseif start_m_2 > stop_m_2
-        a_idx = [a_first_range, a_third_range];
-    end
-
-    a_idx = a_idx.';
-
-    % construct Qt from a_idx
-    valid = (a_idx >= 0) & (a_idx < K);
     
-    row_idx = find(valid);      
-    col_idx = a_idx(valid)+1;
-    vals    = ones(length(row_idx), 1);
     
-    Qt = sparse(row_idx, col_idx, vals, N, K);
-    Qr = Qt.';
-
+    % b) Create the vector g of length K, where the k'th element is gk from the OFDM compendium.
+    % ...
+  
+    
+    
     % c) using g and fDelta, create f, which is the vector of subcarrier
     % frequencies. f(k) is equal to fk in the compendium. 
     % ...
-    f = g_bin(:) * fDelta; 
-    f_new = g(:) * fDelta;
+    
+    
     
     % to save computations, a) b) and c) could be done outside this loop.
+   
+    
     
     
     % d) sample in time domain by performing IDFT on N*Qt*a; (use ifft(...))
     % ...
-    X = N * Qt * a;
-    x = ifft(X);
+
    
 
     % e) Add the cyclic prefix
     % ...
-    x_cp = [x(end-L+1:end); x];
+
+
 
     % f) Now we simulate an analogue signal with an upsampled discrete signal
     % that is interpolated using for example the sinc-function. See f) in 
     % the problem description.
     % ... 
     
-    Tsamp_orig   = Ts / (L + N);          % Ts/(L+N)
-    fsamp_orig   = 1 / Tsamp_orig;        % original sampling rate
-    t_samples    = (0:L+N-1).' * Tsamp_orig;  % t_m = m * Ts/(L+N)
-    
-    fsampAnalog  = N_analog / Ts;         % dense "analog" sampling rate
-    tAnalog      = (0:N_analog-1).' / fsampAnalog;   % 0 ... Ts
-    
-    xAnalog      = zeros(N_analog, 1);    % s_I(t) in Eq. (3.8)
-    
-    N_interpolation = 8;                  % truncate sinc to ±8 original samples
-    
-    for m = 1:(L+N)
-        t_m = t_samples(m);               % time of sample m
-    
-        % only use tAnalog within ± N_interpolation * Tsamp_orig
-        t_left  = t_m - N_interpolation * Tsamp_orig;
-        t_right = t_m + N_interpolation * Tsamp_orig;
-    
-        idx = (tAnalog >= t_left) & (tAnalog <= t_right);
-        if ~any(idx)
-            continue;
-        end
-    
-        tau = tAnalog(idx) - t_m;         % t - m Ts/(L+N)
-    
-        % g_i(t) = sinc interpolation filter
-        xAnalog(idx) = xAnalog(idx) + x_cp(m) * sinc(fsamp_orig * tau);
-    end
 
 
     % % %% SANITY CHECK. See if we get back what we should.
@@ -230,25 +160,12 @@ for iterations = 1:Nmes
     % investigation. 
     % ...
 
-    % Re-sample xAnalog at the original sampling instants using sampleIndexes
-    x_rec = xAnalog(sampleIndexes);      % length N+L, should match x_cp
-    
-    % Interpolation error
-    err = x_rec - x_cp;
-    maxErr = max(abs(err));
-    rmsErr = sqrt(mean(abs(err).^2));
-    
-    fprintf('Max interpolation error: %g\n', maxErr);
-    fprintf('RMS interpolation error: %g\n', rmsErr);
 
 
     % g) Modulate to bandpass. Simply multiply xAnalog exp(1i*2*pi*fc*t)
     % (elementwise!) and then take the real part of that signal.
-    %tAnalog = linspace(0, Ts, N_analog).'; 
-    xBP_complex = xAnalog .*exp(1i*2*pi*fc.*tAnalog);
-    xBP         = real(xBP_complex);
 
-    
+
 
     % Power allocation... Skipped in this very lab.
 
@@ -257,25 +174,8 @@ for iterations = 1:Nmes
     % h) We produce z by convolving the bandpass signal with the channel.
     % See the h) in the problem description.
     % ...
-    
-    % dicreate-time channel
-    % h_BP(t) = sum (ap * dirac(t - tp)
-    % h_BP(n) = sum (ap * dirac(n - np)
-    h_BP = zeros(N_analog,1);
-    for i = 1:Nchannel
-        np = channelSampleTimes(i) + 1;
-        h_BP(np) = h_BP(np) + channelGains(i);
-    end
-    
-    count_nonzero = nnz(h_BP);
 
-    % convolution xBP and h_BP
-    z = conv(xBP, h_BP, 'full');
-    z = z(1:N_analog);
 
-    % Time axis for z
-    Nz = length(z);
-    t_z = (0:Nz-1).' / fsampAnalog;
 
     %% Receiver
     % Now it's time for the receiver. 
@@ -286,50 +186,19 @@ for iterations = 1:Nmes
     % Then lowpass-filter zFS to create zLP. See i) in the probplem
     % description. 
     % ... 
-
-    % frequency shift to baseband
-    Nz = length(z);
-    zFS = z .* exp(-1i*2*pi*fc.*tAnalog(1:Nz));
-
-    % Sinc LPF
-    NLP = 200;
-    B = (K/2)*fDelta;
-    t_sinc = (-NLP:NLP)/fsampAnalog;
-    sinctrunc = (2*B/fsampAnalog) * sinc(2*B*t_sinc);
-    sinctrunc = sinctrunc / sum(sinctrunc);
-
-    % convolution z with sinc LPF
-    zLP = conv(zFS, sinctrunc, 'full');
-    zLP = zLP(NLP+1:NLP+Nz);
-    zLP = 2 * zLP;
-
-    % 1) Spectrum of bandpass received signal z(t)
-    plot_fft(z, fsampAnalog, 'Spectrum of z(t) - bandpass after channel');
     
-    % 2) Spectrum after mixing down: zFS(t) = z * exp(-j2πf_c t)
-    plot_fft(zFS, fsampAnalog, 'Spectrum of zFS(t) - baseband + image at 2f_c');
-    
-    % 3) Spectrum after lowpass: zLP(t)
-    plot_fft(zLP, fsampAnalog, 'Spectrum of zLP(t) - lowpass baseband');
 
-    % Checking matrixsize
-    %length_xBP = length(xBP)
-    %length_hbp = length(h_bp)
-    %length_z   = length(z)
-    %length_t   = length(tAnalog)
-    %N_analog
-    %[idx, vals] = find(h_bp);
-    %[idx vals]
 
     % j) Sample zLP (and remove cyclic prefix).
     % Simply pick the N samples during the observation
     % interval. Those should be at the indexes sampleIndexes(L+1:L+N). 
     % ...
-    z_disc_cp = zLP(sampleIndexes);   % length = N + L
-    y = z_disc_cp(L+1 : L+N);
+
+
 
     % k)  Run DFT using fft( ) for the vector produced in j). 
-    R = fft(y); 
+    
+
 
     % l) Channel Hk's. We assume we know the channel inpulse response. (or
     % has been estimated with perfect accuracy). Use the definition of the
@@ -337,17 +206,6 @@ for iterations = 1:Nmes
     % the vector H, where H(k) is the Fourier transform of the
     % channel impulse response at frequency f(k) + fc. 
     % ...
-
-    % Channel H_k: Fourier transform of h(t) at f(k) + fc
-    H = zeros(K,1);   % H(k) for each active subcarrier
-    
-    for ell = 1:Nchannel
-        % α_ℓ * exp( -j 2π (f(k) + fc) T_ℓ ), applied for all k at once
-        H = H + channelGains(ell) * exp( -1i * 2*pi * (f_new + fc) * channelTaus(ell) );
-    end
-    
-    % Now H is a K×1 vector, same ordering as f and as Qr*R
-
   
 
     % % %% SANITY CHECK. See if we get back what we should.
@@ -365,24 +223,9 @@ for iterations = 1:Nmes
     % aTilde) is small (less than 1 preferably, but otherwise close to that). 
     % If it works without the channel it should work well with the channel
     % (and also changing the channel). 
-
-    aTilde = (1/(N)*Qr*R)./H;
-    norm(a - aTilde)
-
-    figure;
-    plot(abs(a - aTilde))
-
-    X_dig    = N * Qt * a;
-    x_dig    = ifft(X_dig);
-    xcp_dig  = [x_dig(end-L+1:end); x_dig];
-    y_dig    = xcp_dig(L+1:L+N);
-    R_dig    = fft(y_dig);
     
-    aTilde_d = (1/N) * (Qr * R_dig);
-    norm_dig = norm(a - aTilde_d);
-    fprintf('Pure-digital ||a - aTilde_d|| = %.3g\n', norm_dig);
 
-    
+
     % m) We now introduce additional noise (besides imperfect integration and filtering).  
     % This should capture all sorts of additional noise sources.  N0 = 2000;
     % Create Rnoisy from R by adding complex Gaussian noise with variance N0 to R.
@@ -399,37 +242,6 @@ for iterations = 1:Nmes
 
 
     % Congratulations, you are done with one iteration!
-
-end
-
-
-% visualization check
-visualization(X,x, N, fDelta, L, Tobs, x_cp, ...
-    tAnalog, xAnalog, sampleTimes, Ts, xBP, t_z, z, channelTaus)
-
-
-function plot_fft(sig, fs, ttl)
-%PLOT_FFT  Plot the magnitude spectrum of a signal in dB
-%
-%   plot_fft(sig, fs, ttl)
-%
-%   sig : input time-domain signal (vector)
-%   fs  : sampling frequency in Hz
-%   ttl : plot title (string)
-
-    sig = sig(:);                 % ensure column
-    N = length(sig);              % signal length
-
-    SIG = fftshift(fft(sig));     % centered FFT
-    faxis = linspace(-fs/2, fs/2, N);   % frequency axis
-
-    figure;
-    plot(faxis, 20*log10(abs(SIG) + 1e-12), 'LineWidth', 1.2);
-    grid on;
-
-    xlabel('Frequency [Hz]');
-    ylabel('Magnitude [dB]');
-    title(ttl);
 
 end
 
