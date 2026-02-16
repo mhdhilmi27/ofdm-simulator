@@ -1,5 +1,6 @@
 OFDM-2.m
 **/.DS_Store
+ofm_from_lecture.m
 
 # Ignore PDF files
 *.pdf

@@ -1,3 +1,5 @@
+% Muhammad Hilmi
+
 %% System parameters
 K = 64; % number of subcarriers
 N = 64; % number of samples equal to K.
@@ -6,11 +8,16 @@ Ts = 0.001; % signaling time
 Tobs = (N*Ts)/(N+L); % observation time
 Tcp = Ts - Tobs; % length of cyclic prefix
 fDelta = 1/Tobs; % separation of carriers
-fsamp = N*fDelta; % Choosen 
+fsamp = N*fDelta; % Choosen
+% fsampMin = K*fDelta; % the lowest rate we can sample according to theory. Not used. Here same as fsamp. 
 sampleTimes = 0:Ts/(N+L):Ts - Ts/(N+L); % times where the N samples are found (including cyclic prefix).
 N_analog = 1000*(N+L); % number of samples per Ts for the simulated analog signal.
 sampleIndexes = 1:floor(N_analog/(L+N)):(L+N)*floor(N_analog/(L+N)); % sample times
 % indexes for the analog signal where the N samples are.
+
+
+
+
 
 fc = (100)*N_analog; % Carrier frequency
 
@@ -29,6 +36,8 @@ channelSampleTimes = floor(channelTaus*(N_analog/Ts)); % the sample times of
 
 SamplesDuringTcp = floor(Tcp*(N_analog/Ts)); % simply the amount of samples
 % of the analog signal during a time interval of length Tcp.
+
+
 
 
 %% We produce a bunch of subcarrierers (K such to be precise)
