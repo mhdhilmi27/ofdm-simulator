@@ -1,6 +1,8 @@
 OFDM-2.m
 **/.DS_Store
 ofm_from_lecture.m
+testing.m
+matlab_workspace.m
 
 # Ignore PDF files
 *.pdf
